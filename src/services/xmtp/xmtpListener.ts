@@ -1,7 +1,5 @@
-import { setupXMTP } from '../../xmtpClient';
+import { setupXMTP } from './client';
 import { handleMessage } from './messageHandler';
-import { Client, DecodedMessage } from '@xmtp/xmtp-js';
-import { Attachment, RemoteAttachment } from '@xmtp/content-type-remote-attachment';
 
 function getMessageContent(content: any): string {
   if (typeof content === 'string') {
