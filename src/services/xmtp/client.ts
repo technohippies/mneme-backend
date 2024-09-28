@@ -11,7 +11,7 @@ export async function setupXMTP() {
   const wallet = new Wallet(privateKey);
   console.log('Setting up XMTP client...');
   const client = await Client.create(wallet, { 
-    env: 'production',
+    env: 'dev',
     codecs: [new RemoteAttachmentCodec(), new AttachmentCodec()]
   });
   console.log('XMTP client created successfully');

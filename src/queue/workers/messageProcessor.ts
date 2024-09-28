@@ -1,6 +1,7 @@
 import { createWorker } from '../queueManager';
 import { setupXMTP } from '../../services/xmtp/client';
 import { handleMessage } from '../../services/xmtp/messageHandler';
+import { scoreAudio } from '../../utils/scoreAudio';
 
 import { DecodedMessage } from '@xmtp/xmtp-js';
 import { Job } from 'bullmq';
