@@ -5,6 +5,8 @@ import { ContentTypeAttachment, ContentTypeRemoteAttachment } from "@xmtp/conten
 import dotenv from 'dotenv';
 import Groq from 'groq-sdk';
 import fs from 'fs';
+import { getPhrase } from '../orbis/getPhrase.js';
+import { scoreAudio } from '../../utils/scoreAudio.js';
 
 dotenv.config();
 const groqApiKey = process.env.GROQ_API_KEY;
@@ -64,6 +66,9 @@ async function handleAttachment(content: any, type: 'remoteAttachment' | 'native
   return null;
 }
 
+// Add this at the top of the file, outside of any function
+const messageCache = new Map<string, { streamId: string, originalPhrase: string }>();
+
 export async function handleMessage(message: DecodedMessage, contentString: string): Promise<User | null> {
   console.log('[handleMessage] Received message:');
   console.log('[handleMessage] Sender:', message.senderAddress);
@@ -75,6 +80,21 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
 
   if (typeof content === 'string') {
     console.log('[handleMessage] Content (Text):', content);
+    try {
+      const parsedContent = JSON.parse(content);
+      const { stream_id, pairId } = parsedContent;
+      if (stream_id && pairId) {
+        const originalPhrase = await getPhrase(stream_id);
+        if (originalPhrase) {
+          console.log('[handleMessage] Original phrase:', originalPhrase);
+          messageCache.set(pairId, { streamId: stream_id, originalPhrase });
+        } else {
+          console.log('[handleMessage] No original phrase found for stream ID:', stream_id);
+        }
+      }
+    } catch (error) {
+      console.error('[handleMessage] Error parsing content:', error);
+    }
   } else if (content.type === 'remoteAttachment' || content.type === 'nativeAttachment') {
     console.log(`[handleMessage] Content (${content.type}):`, content.content);
     const audioData = await handleAttachment(content.content, content.type);
@@ -82,8 +102,20 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
       console.log('[handleMessage] Audio data received, transcribing...');
       const transcript = await transcribeAudioData(audioData);
       console.log('[handleMessage] Transcription:', transcript);
-      // New log to test the transcription
-      console.log('[handleMessage] TEST - Transcribed content:', transcript);
+
+      const pairId = content.content.filename.split('.')[0];
+      const cachedData = messageCache.get(pairId);
+
+      if (cachedData) {
+        const { streamId, originalPhrase } = cachedData;
+        console.log('[handleMessage] Found matching text message. Stream ID:', streamId);
+        const score = await scoreAudio(transcript, originalPhrase);
+        console.log('[handleMessage] Audio score:', score);
+        // Clean up the cache after use
+        messageCache.delete(pairId);
+      } else {
+        console.log('[handleMessage] No matching text message found for pairId:', pairId);
+      }
     }
   } else {
     console.log('[handleMessage] Content (Unknown type):', content);
