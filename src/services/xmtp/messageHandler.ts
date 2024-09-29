@@ -111,7 +111,7 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
         const { streamId, originalPhrase } = cachedData;
         console.log('[handleMessage] Found matching text message. Stream ID:', streamId);
         const score = await scoreAudio(transcript, originalPhrase);
-        console.log('[handleMessage] Audio score:', score);
+        console.log('[handleMessage]', score);
 
         // Send the score back to the sender
         try {
