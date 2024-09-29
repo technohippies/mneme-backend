@@ -3,6 +3,8 @@ import { Wallet } from 'ethers';
 import { config } from '../../config/environment';
 import { RemoteAttachmentCodec, AttachmentCodec } from "@xmtp/content-type-remote-attachment";
 
+let xmtpClient: Client | null = null;
+
 export async function setupXMTP() {
   const privateKey = config.xmtpPrivateKey;
   if (!privateKey) {
@@ -10,10 +12,17 @@ export async function setupXMTP() {
   }
   const wallet = new Wallet(privateKey);
   console.log('Setting up XMTP client...');
-  const client = await Client.create(wallet, { 
+  xmtpClient = await Client.create(wallet, { 
     env: 'dev',
     codecs: [new RemoteAttachmentCodec(), new AttachmentCodec()]
   });
   console.log('XMTP client created successfully');
-  return client;
+  return xmtpClient;
+}
+
+export function getXMTPClient() {
+  if (!xmtpClient) {
+    throw new Error('XMTP client not initialized. Call setupXMTP first.');
+  }
+  return xmtpClient;
 }

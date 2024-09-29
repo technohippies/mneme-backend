@@ -7,6 +7,7 @@ import Groq from 'groq-sdk';
 import fs from 'fs';
 import { getPhrase } from '../orbis/getPhrase.js';
 import { scoreAudio } from '../../utils/scoreAudio.js';
+import { getXMTPClient } from './client';
 
 dotenv.config();
 const groqApiKey = process.env.GROQ_API_KEY;
@@ -111,6 +112,17 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
         console.log('[handleMessage] Found matching text message. Stream ID:', streamId);
         const score = await scoreAudio(transcript, originalPhrase);
         console.log('[handleMessage] Audio score:', score);
+
+        // Send the score back to the sender
+        try {
+          const xmtpClient = getXMTPClient();
+          const conversation = await xmtpClient.conversations.newConversation(message.senderAddress);
+          await conversation.send(`${score}`);
+          console.log('[handleMessage] Score sent back to the sender');
+        } catch (error) {
+          console.error('[handleMessage] Error sending score back to the sender:', error);
+        }
+
         // Clean up the cache after use
         messageCache.delete(pairId);
       } else {
