@@ -1,69 +1,40 @@
 import { createWorker } from '../queueManager';
 import { setupXMTP } from '../../services/xmtp/client';
 import { handleMessage } from '../../services/xmtp/messageHandler';
-import { scoreAudio } from '../../utils/scoreAudio';
-
-import { DecodedMessage } from '@xmtp/xmtp-js';
 import { Job } from 'bullmq';
 
+console.log('messageProcessor.ts is being executed');
+
 async function processMessage(job: Job) {
-  const { senderAddress, content, sent } = job.data;
-  console.log(`[processMessage] Received job:`, { senderAddress, content, sent });
-
-  try {
-    const [xmtp] = await Promise.all([
-      setupXMTP(),
-    ]);
-
-    console.log(`[processMessage] XMTP client address: ${xmtp.address}`);
-
-    if (senderAddress === xmtp.address) {
-      console.log('[processMessage] Skipping message from self');
-      return;
-    }
-
-    const partialMessage: Partial<DecodedMessage> = {
-      senderAddress,
-      content,
-      sent: new Date(sent),
-    };
-
-    console.log('[processMessage] Calling handleMessage with:', partialMessage);
-    const updatedUser = await handleMessage(partialMessage as DecodedMessage, content);
-    if (updatedUser) {
-      console.log('[processMessage] User updated:', updatedUser);
-    } else {
-      console.log('[processMessage] No user update required');
-    }
-  } catch (error) {
-    console.error(`[processMessage] Error processing job ${job.id}:`, error);
-    throw error;
-  }
+  console.log(`[processMessage] Received job:`, job.data);
+  // ... rest of the function
 }
 
 async function main() {
-  const worker = await createWorker('xmtp-messages', processMessage);
+  console.log('Starting worker in messageProcessor.ts');
+  try {
+    const worker = await createWorker('xmtp-messages', processMessage);
 
-  worker.on('completed', (job) => {
-    if (job) {
-      console.log(`Job ${job.id} completed successfully`);
-    } else {
-      console.log('Job completed, but job details are not available.');
-    }
-  });
+    worker.on('completed', (job) => {
+      console.log(`Job ${job?.id || 'unknown'} completed successfully`);
+    });
 
-  worker.on('failed', (job, err) => {
-    if (job) {
-      console.error(`Failed to process message ${job.id}:`, err);
-    } else {
-      console.error('Job failed, but job details are not available:', err);
-    }
-  });
+    worker.on('failed', (job, err) => {
+      console.error(`Failed to process message ${job?.id || 'unknown'}:`, err);
+    });
 
-  console.log('Worker started');
+    worker.on('error', (err) => {
+      console.error('Worker error:', err);
+    });
+
+    console.log('Worker started successfully in messageProcessor.ts');
+  } catch (error) {
+    console.error('Error creating worker:', error);
+  }
 }
 
 main().catch(error => {
-  console.error('Error in main function:', error);
-  process.exit(1);
+  console.error('Error in messageProcessor main function:', error);
 });
+
+console.log('End of messageProcessor.ts file');

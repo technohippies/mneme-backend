@@ -9,7 +9,7 @@ export const config = {
   port: process.env.PORT || 3000,
   valkeyHost: process.env.VALKEY_HOST || 'localhost',
   valkeyPort: parseInt(process.env.VALKEY_PORT || '6379', 10),
-  dragonflyPassword: process.env.DRAGONFLY_PASSWORD || '',
+  valkeyPassword: process.env.VALKEY_PASSWORD || '',
   xmtpPrivateKey: process.env.PRIVATE_KEY as string,
   groqApiKey: process.env.GROQ_API_KEY as string,
 };

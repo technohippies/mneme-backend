@@ -4,6 +4,17 @@ import { startXMTPListener } from './services/xmtp/xmtpListener';
 import { createQueue } from './queue/queueManager';
 import './queue/workers/messageProcessor';
 import Redis from 'ioredis';
+import dotenv from 'dotenv';
+import path from 'path';
+
+console.log('Current working directory:', process.cwd());
+console.log('Attempting to load .env file...');
+const result = dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+} else {
+  console.log('.env file loaded successfully');
+}
 
 const redis = new Redis({
   host: process.env.DRAGONFLY_HOST || 'localhost',
