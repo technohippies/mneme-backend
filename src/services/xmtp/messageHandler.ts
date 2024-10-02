@@ -70,14 +70,14 @@ async function handleAttachment(content: any, type: 'remoteAttachment' | 'native
 // Add this at the top of the file, outside of any function
 const messageCache = new Map<string, { streamId: string, originalPhrase: string }>();
 
-export async function handleMessage(message: DecodedMessage, contentString: string): Promise<User | null> {
+export async function handleMessage(message: DecodedMessage, contentString: string): Promise<void> {
   console.log('[handleMessage] Received message:');
   console.log('[handleMessage] Sender:', message.senderAddress);
   console.log('[handleMessage] Sent at:', message.sent);
   console.log('[handleMessage] Content type:', message.contentType.toString());
 
   const content = getMessageContent(message);
-  console.log('[handleMessage] Parsed content:', content);
+  console.log('[handleMessage] Parsed content:', sanitizeLogContent(content));
 
   if (typeof content === 'string') {
     console.log('[handleMessage] Content (Text):', content);
@@ -97,7 +97,7 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
       console.error('[handleMessage] Error parsing content:', error);
     }
   } else if (content.type === 'remoteAttachment' || content.type === 'nativeAttachment') {
-    console.log(`[handleMessage] Content (${content.type}):`, content.content);
+    console.log(`[handleMessage] Content (${content.type}):`, sanitizeLogContent(content.content));
     const audioData = await handleAttachment(content.content, content.type);
     if (audioData) {
       console.log('[handleMessage] Audio data received, transcribing...');
@@ -111,7 +111,7 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
         const { streamId, originalPhrase } = cachedData;
         console.log('[handleMessage] Found matching text message. Stream ID:', streamId);
         const score = await scoreAudio(transcript, originalPhrase);
-        console.log('[handleMessage]', score);
+        console.log('[handleMessage] Score:', score);
 
         // Send the score back to the sender
         try {
@@ -130,12 +130,25 @@ export async function handleMessage(message: DecodedMessage, contentString: stri
       }
     }
   } else {
-    console.log('[handleMessage] Content (Unknown type):', content);
+    console.log('[handleMessage] Content (Unknown type):', sanitizeLogContent(content));
   }
 
-  console.log('[handleMessage] Raw message content:', message.content);
+  console.log('[handleMessage] Raw message content:', sanitizeLogContent(message.content));
   console.log('---');
+}
 
-  return null;
+function sanitizeLogContent(content: any): any {
+  if (content && typeof content === 'object') {
+    const sanitized = { ...content };
+    for (const key in sanitized) {
+      if (sanitized[key] instanceof Uint8Array) {
+        sanitized[key] = `Uint8Array(${sanitized[key].length})`;
+      } else if (typeof sanitized[key] === 'object') {
+        sanitized[key] = sanitizeLogContent(sanitized[key]);
+      }
+    }
+    return sanitized;
+  }
+  return content;
 }
 
